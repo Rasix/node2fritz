@@ -2,10 +2,16 @@
     "name": "node2fritz",
     "version": "0.0.2",
     "description": "Node Module to communicate with a AVM FritzBox",
-    "author": "Steffen Timm - Rasix.net <s.timm@rasix.net> (http://www.rasix.net)",
+    "author": "Rasix.net (http://www.rasix.net)",
+    "contributors": [
+        {
+            "name": "Steffen Timm",
+            "email": "s.timm@rasix.net"
+        }
+    ],
     "main": "./node2fritz.js",
     "dependencies": {
-        "csvtojson": "*"
+        "csvtojson": "0.1.x"
     },
     "repository": {
     "type": "git",
