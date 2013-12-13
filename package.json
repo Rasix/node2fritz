@@ -1,6 +1,6 @@
 {
     "name": "node2fritz",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Node Module to communicate with a AVM FritzBox",
     "author": "Rasix.net (http://www.rasix.net)",
     "contributors": [

@@ -4,6 +4,8 @@
  * For Fritz!OS > 05.50
  */
 var http = require('http');
+var querystring = require('querystring');
+
 
 module.exports.getSessionID = function(username, password, callback, options)
 {
@@ -40,7 +42,7 @@ module.exports.getSessionID = function(username, password, callback, options)
     } catch (e) {
         throw new Error('Error getting sid from FritzBox. Please check login and url');
     }
-}
+};
 
 module.exports.getPhoneList = function(sid, callback, options)
 {
@@ -79,4 +81,95 @@ module.exports.getPhoneList = function(sid, callback, options)
     } catch (e) {
         throw new Error('Error getting phone list from FritzBox. Please check session');
     }
-}
+};
+
+
+module.exports.setGuestWLan = function(sid, enable, callback, options)
+{
+    options || (options = {});
+    options.url || (options.url = 'fritz.box');
+
+
+    http.request({host:options.url, path:'/wlan/guest_access.lua?sid='+sid},function(response){
+        var data = '';
+
+        response.on('data', function (chunk) {
+            data += chunk;
+        });
+        response.on('end', function () {
+            options.ssid || (options.ssid = /"wlan:settings\/guest_ssid"\] = "([^"]*)"/g.exec(data)[1]);
+            options.wpakey || (options.wpakey = /"wlan:settings\/guest_pskvalue"\] = "([^"]*)"/g.exec(data)[1]);
+            options.security || (options.security = "0");
+            options.modus || (options.modus = /"wlan:settings\/guest_encryption"\] = "([^"]*)"/g.exec(data)[1]);
+            options.timeout || (options.timeout = /"wlan:settings\/guest_timeout"\] = "([^"]*)"/g.exec(data)[1]);
+            options.timeoutactive || (options.timeoutactive = /"wlan:settings\/guest_timeout_active"\] = "([^"]*)"/g.exec(data)[1]);
+
+            var parameters = {
+                "guest_ssid":options.ssid,
+                "wlan_security":options.security,
+                "wpa_key":options.wpakey,
+                "wpa_modus":options.modus,
+                "down_time_activ":options.timeoutactive,
+                "down_time_value":options.timeout,
+                "btnSave":""};
+
+            if (enable)
+            {
+                parameters.activate_guest_access = "on";
+            }
+            var post_data = querystring.stringify(parameters);
+            var post_req = http.request({host:options.url, path:'/wlan/guest_access.lua?sid='+sid, method: 'POST',headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': post_data.length
+            }},function(response){
+                var data = '';
+
+                response.on('data', function (chunk) {
+                    data += chunk;
+                });
+                response.on('end', function () {
+
+                    http.request({host:options.url, path:'/wlan/guest_access.lua?sid='+sid},function(response){
+                        var data = '';
+
+                        response.on('data', function (chunk) {
+                            data += chunk;
+                        });
+                        response.on('end', function () {
+                            callback(/"wlan:settings\/guest_ap_enabled"\] = "([^"]*)"/g.exec(data)[1]=="1");
+                        });
+                    }).end();
+                });
+            });
+            post_req.write(post_data);
+            post_req.end();
+        });
+    }).end();
+};
+
+
+module.exports.getGuestWLan = function(sid, callback, options)
+{
+    options || (options = {});
+    options.url || (options.url = 'fritz.box');
+
+    http.request({host:options.url, path:'/wlan/guest_access.lua?sid='+sid},function(response){
+        var data = '';
+
+        response.on('data', function (chunk) {
+            data += chunk;
+        });
+        response.on('end', function () {
+            var settings = {};
+            settings.enabled = /"wlan:settings\/guest_ap_enabled"\] = "([^"]*)"/g.exec(data)[1]=="1";
+            settings.ssid = /"wlan:settings\/guest_ssid"\] = "([^"]*)"/g.exec(data)[1];
+            settings.wpakey = /"wlan:settings\/guest_pskvalue"\] = "([^"]*)"/g.exec(data)[1];
+            settings.security = "0";
+            settings.modus = /"wlan:settings\/guest_encryption"\] = "([^"]*)"/g.exec(data)[1];
+            settings.timeout = /"wlan:settings\/guest_timeout"\] = "([^"]*)"/g.exec(data)[1];
+            settings.timeoutactive = /"wlan:settings\/guest_timeout_active"\] = "([^"]*)"/g.exec(data)[1];
+
+            callback(settings);
+        });
+    }).end();
+};
