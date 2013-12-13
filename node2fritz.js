@@ -44,44 +44,6 @@ module.exports.getSessionID = function(username, password, callback, options)
     }
 };
 
-module.exports.getPhoneList = function(sid, callback, options)
-{
-
-    options || (options = {});
-    options.url || (options.url = 'fritz.box');
-    try {
-        http.request({host:options.url, path:'/fon_num/foncalls_list.lua?sid='+sid+'&csv='},function(response){
-            var csv = '';
-
-            response.on('data', function (chunk) {
-                csv += chunk;
-            });
-            response.on('end', function () {
-                var correctedCsv = csv.replace(/.*/, "").substr(1);
-                correctedCsv = correctedCsv.replace(/.*/, "").substr(1);
-                correctedCsv = "direction,date,time,remotename,remotenumber,localdevice,localnumber,duration\n" + correctedCsv;
-                correctedCsv  = correctedCsv.replace(/(\n.{10}) /g,"$1;");
-                correctedCsv  = correctedCsv.replace(/\n1;/g,"\ninbound;");
-                correctedCsv  = correctedCsv.replace(/\n2;/g,"\nmissed;");
-                correctedCsv  = correctedCsv.replace(/\n3;/g,"\ndeclined;");
-                correctedCsv  = correctedCsv.replace(/\n4;/g,"\noutbound;");
-                correctedCsv  = correctedCsv.replace(/Internet: /g,"");
-                correctedCsv  = correctedCsv.replace(/;/g,",");
-
-                var csvConverter=new (require("csvtojson").core.Converter)();
-
-                csvConverter.on("end_parsed",function(jsonObj){
-                    var jsonString = JSON.stringify(jsonObj).replace("\"csvRows\":","");
-                    callback(eval(jsonString));
-                });
-
-                csvConverter.from(correctedCsv);
-            });
-        }).end();
-    } catch (e) {
-        throw new Error('Error getting phone list from FritzBox. Please check session');
-    }
-};
 
 
 module.exports.setGuestWLan = function(sid, enable, callback, options)
@@ -172,4 +134,54 @@ module.exports.getGuestWLan = function(sid, callback, options)
             callback(settings);
         });
     }).end();
+};
+
+module.exports.getPhoneList = function(sid, callback, options)
+{
+
+    options || (options = {});
+    options.url || (options.url = 'fritz.box');
+    try {
+        http.request({host:options.url, path:'/fon_num/foncalls_list.lua?sid='+sid+'&csv='},function(response){
+            var csv = '';
+
+            response.on('data', function (chunk) {
+                csv += chunk;
+            });
+            response.on('end', function () {
+                var correctedCsv = csv.replace(/.*/, "").substr(1);
+                correctedCsv = correctedCsv.replace(/(\n.{10}) /g,"$1;");
+                correctedCsv = correctedCsv.replace(/\n1;/g,"\ninbound;");
+                correctedCsv = correctedCsv.replace(/\n2;/g,"\nmissed;");
+                correctedCsv = correctedCsv.replace(/\n3;/g,"\ndeclined;");
+                correctedCsv = correctedCsv.replace(/\n4;/g,"\noutbound;");
+                correctedCsv = correctedCsv.replace(/.*/, "").substr(1);
+                correctedCsv = correctedCsv.replace(/Internet: /g,"");
+
+                var lines = correctedCsv.split("\n");
+                var json = "[";
+                for(line in lines)
+                {
+                    json = json + "{";
+                    var values = lines[line].split(";");
+                    json = json + '"direction":"'+values[0]+'",';
+                    json = json + '"date":"'+values[1]+'",';
+                    json = json + '"time":"'+values[2]+'",';
+                    json = json + '"remotename":"'+values[3]+'",';
+                    json = json + '"remotenumber":"'+values[4]+'",';
+                    json = json + '"localdevice":"'+values[5]+'",';
+                    json = json + '"localnumber":"'+values[6]+'",';
+                    json = json + '"duration":"'+values[7]+'"';
+                    json = json + "}";
+                    if (line == lines.length - 2)
+                        break;
+                    json = json + ",";
+                }
+                json = json + "]";
+                callback(eval(json));
+            });
+        }).end();
+    } catch (e) {
+        throw new Error('Error getting phone list from FritzBox. Please check session');
+    }
 };
