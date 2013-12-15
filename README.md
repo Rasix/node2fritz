@@ -14,6 +14,10 @@ Node module to communicate with a AVM FritzBox providing the following functions
 npm install node2fritz
 ```
 
+## Community
+
+If you'd like to discuss this module, or ask questions about it, please use the Google Group at https://groups.google.com/forum/#!forum/node2fritz
+
 ## How to use
 
 Get the session ID:

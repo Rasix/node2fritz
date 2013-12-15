@@ -7,6 +7,29 @@ var http = require('http');
 var querystring = require('querystring');
 
 
+module.exports.checkSession = function(sid, callback, options)
+{
+    options || (options = {});
+    options.url || (options.url = 'fritz.box');
+
+    try {
+
+        http.request({host:options.url, path:'/login_sid.lua?sid='+sid}, function(response) {
+            var str = '';
+            response.on('data', function (chunk) {
+                str += chunk;
+            });
+
+            response.on('end', function () {
+                callback(str.match("<SID>(.*?)</SID>")[1] == sid);
+            });
+        }).end();
+    } catch (e) {
+        throw new Error('Error getting sid from FritzBox. Please check login and url');
+    }
+};
+
+
 module.exports.getSessionID = function(username, password, callback, options)
 {
     if (typeof username != 'string') throw new Error('Invalid username');
